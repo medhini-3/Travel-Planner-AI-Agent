@@ -1,0 +1,9 @@
+# Virtual environment
+venv/
+
+# Environment variables (API keys)
+.env
+
+# Python cache & pytest artifacts
+__pycache__/
+.pytest_cache/

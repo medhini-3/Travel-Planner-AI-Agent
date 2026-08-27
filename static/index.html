@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Travel Planner</title>
+    <!-- Tailwind CSS for beautiful styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked.js to format the LLM's markdown output -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+
+    <div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-extrabold text-blue-600 mb-2">AI Travel Agent</h1>
+            <p class="text-lg text-gray-500">Powered by Gemini & Live Web Search</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <form id="tripForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Where do you want to go?</label>
+                    <input type="text" id="destination" required placeholder="e.g., Kyoto, Japan" 
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">How many days?</label>
+                    <input type="number" id="duration" required min="1" max="30" value="3" 
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Interests (comma separated)</label>
+                    <input type="text" id="interests" placeholder="e.g., hidden temples, street food, art" 
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <button type="submit" id="submitBtn" 
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    Plan My Trip
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading Spinner (Hidden by default) -->
+        <div id="loading" class="hidden text-center my-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-2 text-gray-600">Agent is searching the web and crafting your itinerary...</p>
+        </div>
+
+        <!-- Result Section -->
+        <div id="resultCard" class="hidden bg-white rounded-xl shadow-lg p-8 prose prose-blue max-w-none">
+            <div id="itineraryContent"></div>
+        </div>
+    </div>
+
+    <!-- The JavaScript to connect the UI to your FastAPI backend -->
+    <script>
+        document.getElementById('tripForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get UI elements
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const resultCard = document.getElementById('resultCard');
+            const itineraryContent = document.getElementById('itineraryContent');
+
+            // Get user input
+            const destination = document.getElementById('destination').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            // Convert comma separated string to an array
+            const interestsRaw = document.getElementById('interests').value;
+            const interests = interestsRaw ? interestsRaw.split(',').map(i => i.trim()) : [];
+
+            // Update UI to show loading state
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50');
+            resultCard.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            try {
+                // Call your FastAPI backend!
+                const response = await fetch('/api/v1/plan-trip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        destination: destination,
+                        duration_days: duration,
+                        interests: interests
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Use Marked.js to render the Markdown text into beautiful HTML
+                    itineraryContent.innerHTML = marked.parse(data.itinerary);
+                    resultCard.classList.remove('hidden');
+                } else {
+                    itineraryContent.innerHTML = `<p class="text-red-500">Error: ${JSON.stringify(data.detail)}</p>`;
+                    resultCard.classList.remove('hidden');
+                }
+            } catch (error) {
+                itineraryContent.innerHTML = `<p class="text-red-500">Failed to connect to the server.</p>`;
+                resultCard.classList.remove('hidden');
+            } finally {
+                // Reset UI
+                loading.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50');
+            }
+        });
+    </script>
+</body>
+</html>
