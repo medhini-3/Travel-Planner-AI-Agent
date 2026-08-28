@@ -149,9 +149,9 @@
                 const cardsContainer = document.getElementById('itinerary-cards');
 
                 data.itinerary.forEach(dayPlan => {
-                    // Build Timeline for Activities
-                    let activitiesHtml = '<div class="relative border-l-2 border-indigo-100 ml-4 mt-6 space-y-6">';
                     
+                    // 1. Build Timeline for Activities
+                    let activitiesHtml = '<div class="relative border-l-2 border-indigo-100 ml-4 mt-6 space-y-6">';
                     dayPlan.activities.forEach((act) => {
                         activitiesHtml += `
                             <div class="relative pl-6 hover:translate-x-1 transition-transform duration-200">
@@ -165,7 +165,24 @@
                     });
                     activitiesHtml += '</div>';
 
-                    // Build Hotel Card
+                    // 2. Build Timeline for Meals (Restaurants)
+                    let mealsHtml = '<div class="relative border-l-2 border-orange-100 ml-4 mt-6 space-y-6">';
+                    if (dayPlan.meals) {
+                        dayPlan.meals.forEach((meal) => {
+                            mealsHtml += `
+                                <div class="relative pl-6 hover:translate-x-1 transition-transform duration-200">
+                                    <div class="absolute -left-[9px] top-1 w-4 h-4 bg-gradient-to-br from-orange-400 to-red-500 rounded-full border-2 border-white shadow"></div>
+                                    <h4 class="font-bold text-gray-800 text-md"><i class="fa-solid fa-utensils text-orange-500 mr-2"></i>${meal.name}</h4>
+                                    <p class="text-sm text-gray-500 mt-1">${meal.description}</p>
+                                </div>
+                            `;
+                            addMapPin(meal.latitude, meal.longitude, meal.name, meal.description, 'fa-utensils', 'text-orange-500');
+                            coordinates.push([meal.latitude, meal.longitude]);
+                        });
+                    }
+                    mealsHtml += '</div>';
+
+                    // 3. Build Hotel Card
                     const h = dayPlan.hotel;
                     let hotelHtml = `
                         <div class="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl border border-indigo-100 flex items-start shadow-sm">
@@ -190,6 +207,7 @@
                             </div>
                             ${hotelHtml}
                             ${activitiesHtml}
+                            ${mealsHtml}
                         </div>
                     `;
                 });
