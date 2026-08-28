@@ -25,7 +25,7 @@ async def plan_trip(request: TripRequest):
 
     def generate_streaming_itinerary():
         try:
-            chat = client.chats.create(model="gemini-1.5-flash")
+            chat = client.chats.create(model="gemini-3.5-flash-lite")
             prompt = f"Plan a {request.duration_days} day trip to {request.destination} focusing on {', '.join(request.interests)}. Use markdown formatting with clear headings and bullet points."
             
             # Stream the response using the new SDK
