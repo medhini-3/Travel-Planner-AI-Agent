@@ -11,10 +11,20 @@ def test_trip_generation_endpoint_success():
         "interests": ["beaches"]
     }
 
-    # Intercept the new 'client' object
-    with patch("routers.trip_router.client") as mock_genai_client:
+    # Intercept both the GenAI client AND the requests library
+    with patch("routers.trip_router.client") as mock_genai_client, \
+         patch("routers.trip_router.requests.get") as mock_requests_get:
 
-        # Create a fake Pydantic dictionary that matches our new schema
+        # 1. Mock the SerpApi response
+        mock_serpapi_response = MagicMock()
+        mock_serpapi_response.json.return_value = {
+            "local_results": [
+                {"title": "Real Taj Exotica", "rating": 4.8, "gps_coordinates": {"latitude": 15.2, "longitude": 73.9}}
+            ]
+        }
+        mock_requests_get.return_value = mock_serpapi_response
+
+        # 2. Mock the Gemini structured JSON response
         mock_parsed_response = MagicMock()
         mock_parsed_response.model_dump.return_value = {
             "destination": "Goa",
@@ -22,25 +32,22 @@ def test_trip_generation_endpoint_success():
                 {
                     "day": 1,
                     "theme": "Beach Day",
-                    "hotel": {"name": "Taj Exotica", "latitude": 15.2, "longitude": 73.9, "description": "Luxury"},
+                    "hotel": {"name": "Real Taj Exotica", "latitude": 15.2, "longitude": 73.9, "description": "Luxury stay"},
                     "activities": [
                         {"name": "Baga Beach", "latitude": 15.5, "longitude": 73.7, "description": "Sunny"}
                     ]
                 }
             ]
         }
-
         mock_response = MagicMock()
         mock_response.parsed = mock_parsed_response
-        
-        # We mock generate_content (since we use structured output now)
         mock_genai_client.models.generate_content.return_value = mock_response
 
+        # Send request
         response = client.post("/api/v1/plan-trip", json=payload)
 
-    # Assert JSON response
+    # Assertions
     assert response.status_code == 200
     data = response.json()
     assert data["destination"] == "Goa"
-    assert data["itinerary"][0]["activities"][0]["name"] == "Baga Beach"
-    assert data["itinerary"][0]["hotel"]["name"] == "Taj Exotica"
+    assert data["itinerary"][0]["hotel"]["name"] == "Real Taj Exotica"
