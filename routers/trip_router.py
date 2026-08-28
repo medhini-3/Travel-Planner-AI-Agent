@@ -18,18 +18,42 @@ class TripRequest(BaseModel):
     duration_days: int
     interests: List[str] = []
 
-class Location(BaseModel):
-    name: str = Field(description="Name of the real place")
+# --- Detailed Schemas for Rich Information ---
+class ActivityLocation(BaseModel):
+    time_slot: str = Field(description="Scheduled time slot, e.g., '09:30 AM - 11:30 AM'")
+    name: str = Field(description="Name of the attraction or activity")
+    estimated_duration: str = Field(description="Estimated duration, e.g., '2 hours'")
+    estimated_cost: str = Field(description="Entry fee or cost, e.g., '₹100 per person' or 'Free entry'")
+    insider_tip: str = Field(description="Short, high-value local tip or best photo spot")
     latitude: float = Field(description="Exact GPS latitude coordinate")
     longitude: float = Field(description="Exact GPS longitude coordinate")
-    description: str = Field(description="Short engaging description")
+    description: str = Field(description="Engaging 1-2 sentence description of what to do")
+
+class MealLocation(BaseModel):
+    meal_type: str = Field(description="Type of meal: 'Breakfast', 'Lunch', 'Sunset Drinks', or 'Dinner'")
+    time_slot: str = Field(description="Scheduled time slot, e.g., '01:00 PM - 02:30 PM'")
+    name: str = Field(description="Name of the restaurant, cafe, or shack")
+    must_try: str = Field(description="Must-try dish or specialty beverage")
+    estimated_cost: str = Field(description="Estimated budget, e.g., '₹1,200 for two'")
+    latitude: float = Field(description="Exact GPS latitude coordinate")
+    longitude: float = Field(description="Exact GPS longitude coordinate")
+    description: str = Field(description="Vibe and dining recommendation")
+
+class HotelLocation(BaseModel):
+    name: str = Field(description="Name of the hotel")
+    rating: str = Field(description="Rating score, e.g., '4.6 ★'")
+    price_tier: str = Field(description="Estimated price tier, e.g., 'Mid-Range (₹4,000/night)'")
+    check_in_note: str = Field(description="Check-in time or notable amenity, e.g., 'Check-in 02:00 PM | Pool & Spa'")
+    latitude: float = Field(description="Exact GPS latitude coordinate")
+    longitude: float = Field(description="Exact GPS longitude coordinate")
+    description: str = Field(description="Short description of location and stay vibe")
 
 class DayItinerary(BaseModel):
     day: int
-    theme: str = Field(description="Theme for the day")
-    hotel: Location = Field(description="Suggested real hotel for the night")
-    meals: List[Location] = Field(description="Real restaurants or cafes to eat at")
-    activities: List[Location] = Field(description="Places to visit this day in chronological order")
+    theme: str = Field(description="Theme for the day, e.g., 'Coastal Heritage & Sunset Dining'")
+    hotel: HotelLocation = Field(description="Suggested real hotel for the night")
+    activities: List[ActivityLocation] = Field(description="Sightseeing activities in chronological order")
+    meals: List[MealLocation] = Field(description="Curated restaurant stops across the day")
 
 class TripResponse(BaseModel):
     destination: str
@@ -54,7 +78,6 @@ def fetch_real_places(destination: str, search_type: str) -> str:
         local_results = data.get("local_results", [])
         
         context = f"LIVE {search_type.upper()} DATA FROM GOOGLE MAPS:\n"
-        # Grab the top 5 real places and their verified coordinates
         for place in local_results[:5]: 
             name = place.get("title")
             rating = place.get("rating", "N/A")
@@ -75,20 +98,20 @@ async def plan_trip(request: TripRequest):
     if not client:
          raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment variable is missing.")
 
-    # 1. Agentic Action: Fetch Live Data First (Multiple Tool Calls)
+    # 1. Fetch Live SerpApi Data
     live_hotels = fetch_real_places(request.destination, "hotels")
     live_restaurants = fetch_real_places(request.destination, "restaurants")
 
-    # 2. Inject the live data into the prompt as strict instructions
+    # 2. Structured Prompt with Timings & Rich Context
     prompt = (
-        f"Plan a {request.duration_days}-day trip to {request.destination} focusing on {', '.join(request.interests)}.\n\n"
-        f"CRITICAL INSTRUCTIONS:\n"
-        f"1. You MUST use the following real hotels for the accommodations. Do not invent your own.\n"
-        f"2. You MUST use the following real restaurants for the meals. Do not invent your own.\n"
-        f"3. You MUST use the exact GPS coordinates provided below.\n\n"
-        f"{live_hotels}\n\n"
-        f"{live_restaurants}\n\n"
-        f"Include real attractions for the daily activities with their estimated GPS coordinates."
+        f"Create a comprehensive, time-stamped {request.duration_days}-day travel itinerary for {request.destination} "
+        f"tailored to interests: {', '.join(request.interests)}.\n\n"
+        f"CRITICAL REQUIREMENTS:\n"
+        f"1. Schedule realistic chronological time slots for each activity (morning, afternoon, evening) and meal.\n"
+        f"2. Provide estimated budget/costs and high-value insider tips for each stop.\n"
+        f"3. You MUST use these real hotels from Google Maps with their exact GPS coordinates:\n{live_hotels}\n"
+        f"4. You MUST use these real restaurants from Google Maps with their exact GPS coordinates:\n{live_restaurants}\n"
+        f"5. Provide accurate GPS coordinates for all sightseeing locations."
     )
 
     try:
