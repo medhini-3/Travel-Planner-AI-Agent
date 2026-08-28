@@ -19,7 +19,7 @@ class TripRequest(BaseModel):
     interests: List[str] = []
 
 class Location(BaseModel):
-    name: str = Field(description="Name of the real place or real hotel")
+    name: str = Field(description="Name of the real place")
     latitude: float = Field(description="Exact GPS latitude coordinate")
     longitude: float = Field(description="Exact GPS longitude coordinate")
     description: str = Field(description="Short engaging description")
@@ -28,21 +28,22 @@ class DayItinerary(BaseModel):
     day: int
     theme: str = Field(description="Theme for the day")
     hotel: Location = Field(description="Suggested real hotel for the night")
+    meals: List[Location] = Field(description="Real restaurants or cafes to eat at")
     activities: List[Location] = Field(description="Places to visit this day in chronological order")
 
 class TripResponse(BaseModel):
     destination: str
     itinerary: List[DayItinerary]
 
-def fetch_real_hotels(destination: str) -> str:
-    """Agentic Tool: Fetches live hotel data and exact GPS coordinates from Google Maps via SerpApi."""
+def fetch_real_places(destination: str, search_type: str) -> str:
+    """Agentic Tool: Fetches live data and exact GPS coordinates from Google Maps via SerpApi."""
     if not serpapi_key:
-        return "No SerpApi key found. Rely on general knowledge."
+        return f"No SerpApi key found for {search_type}."
         
     url = "https://serpapi.com/search"
     params = {
         "engine": "google_maps",
-        "q": f"top-rated hotels in {destination}",
+        "q": f"top-rated {search_type} in {destination}",
         "type": "search",
         "api_key": serpapi_key
     }
@@ -52,8 +53,8 @@ def fetch_real_hotels(destination: str) -> str:
         data = response.json()
         local_results = data.get("local_results", [])
         
-        hotels_context = "LIVE HOTEL DATA FROM GOOGLE MAPS:\n"
-        # Grab the top 5 real hotels and their verified coordinates
+        context = f"LIVE {search_type.upper()} DATA FROM GOOGLE MAPS:\n"
+        # Grab the top 5 real places and their verified coordinates
         for place in local_results[:5]: 
             name = place.get("title")
             rating = place.get("rating", "N/A")
@@ -62,28 +63,31 @@ def fetch_real_hotels(destination: str) -> str:
             lng = gps.get("longitude")
             
             if name and lat and lng:
-                hotels_context += f"- Hotel: {name} (Rating: {rating} stars), GPS: {lat}, {lng}\n"
+                context += f"- {name} (Rating: {rating} stars), GPS: {lat}, {lng}\n"
                 
-        return hotels_context
+        return context
     except Exception as e:
         print(f"SerpApi Error: {e}")
-        return "Failed to fetch live hotels. Rely on general knowledge."
+        return ""
 
 @router.post("/api/v1/plan-trip")
 async def plan_trip(request: TripRequest):
     if not client:
          raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment variable is missing.")
 
-    # 1. Agentic Action: Fetch Live Data First!
-    live_hotel_data = fetch_real_hotels(request.destination)
+    # 1. Agentic Action: Fetch Live Data First (Multiple Tool Calls)
+    live_hotels = fetch_real_places(request.destination, "hotels")
+    live_restaurants = fetch_real_places(request.destination, "restaurants")
 
     # 2. Inject the live data into the prompt as strict instructions
     prompt = (
         f"Plan a {request.duration_days}-day trip to {request.destination} focusing on {', '.join(request.interests)}.\n\n"
         f"CRITICAL INSTRUCTIONS:\n"
         f"1. You MUST use the following real hotels for the accommodations. Do not invent your own.\n"
-        f"2. You MUST use the exact GPS coordinates provided below for these hotels.\n\n"
-        f"{live_hotel_data}\n\n"
+        f"2. You MUST use the following real restaurants for the meals. Do not invent your own.\n"
+        f"3. You MUST use the exact GPS coordinates provided below.\n\n"
+        f"{live_hotels}\n\n"
+        f"{live_restaurants}\n\n"
         f"Include real attractions for the daily activities with their estimated GPS coordinates."
     )
 
