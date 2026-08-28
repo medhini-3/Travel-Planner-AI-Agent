@@ -21,5 +21,10 @@ jobs:
         pip install -r requirements.txt
         
     - name: Run Pytest
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
       run: |
-        pytest
+        pip install google-generativeai
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+        pytest 

@@ -4,116 +4,311 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Travel Planner</title>
-    <!-- Tailwind CSS for beautiful styling -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Marked.js to format the LLM's markdown output -->
+    <!-- Marked.js -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-</head>
-<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Tailwind Animations & Typography -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                        'gradient-x': 'gradientX 3s ease infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        gradientX: {
+                            '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                            '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
+                        }
+                    },
+                    typography: {
+                        DEFAULT: {
+                            css: {
+                                h1: { color: '#1e3a8a', marginTop: '1.5em', marginBottom: '0.5em' },
+                                h2: { color: '#2563eb', marginTop: '1.2em', marginBottom: '0.5em' },
+                                h3: { color: '#3b82f6' },
+                                strong: { color: '#1e40af' },
+                                a: { color: '#3b82f6', '&:hover': { color: '#1d4ed8' }, transition: 'color 0.2s ease-in-out' },
+                            },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
 
-    <div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <!-- Custom CSS to transform AI Markdown into Modern UI Cards -->
+    <style>
+        /* Target the container holding the AI output */
+        #itineraryContent {
+            color: #334155;
+        }
+
+        /* Make Day headers (h2) look like modern ribbons */
+        #itineraryContent h2 {
+            background: linear-gradient(to right, #eff6ff, transparent);
+            border-left: 5px solid #3b82f6;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0 0.75rem 0.75rem 0;
+            color: #1e3a8a;
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px -3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Make Time of Day (h3) look like sleek pill badges */
+        #itineraryContent h3 {
+            display: inline-block;
+            background: #f8fafc;
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            color: #475569;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* Remove default bullets for the main list */
+        #itineraryContent > ul {
+            list-style: none !important;
+            padding-left: 0;
+        }
+
+        /* Turn top-level bullet points into hoverable Glassmorphism cards */
+        #itineraryContent > ul > li {
+            background: #ffffff;
+            border: 1px solid #f1f5f9;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* Card hover animation */
+        #itineraryContent > ul > li:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -3px rgba(59, 130, 246, 0.15), 0 4px 6px -4px rgba(59, 130, 246, 0.1);
+            border-color: #bfdbfe;
+        }
+
+        /* Make bold text pop with color */
+        #itineraryContent strong {
+            color: #2563eb;
+            font-weight: 800;
+        }
+        
+        /* Style nested lists (sub-bullets) to look like clean timelines */
+        #itineraryContent ul ul {
+            margin-top: 1rem;
+            border-left: 2px dashed #cbd5e1;
+            padding-left: 1.25rem;
+            margin-left: 0.5rem;
+            list-style: none !important;
+        }
+
+        /* Remove card styling from sub-bullets and add custom icon */
+        #itineraryContent ul ul li {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0.5rem 0;
+            margin: 0;
+            position: relative;
+        }
+
+        /* Custom bullet icon for sub-items */
+        #itineraryContent ul ul li::before {
+            content: "📍"; 
+            position: absolute;
+            left: -1.8rem;
+            font-size: 0.9rem;
+        }
+        
+        /* Smooth out paragraphs inside the cards */
+        #itineraryContent p {
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-gray-800 selection:bg-blue-200 overflow-x-hidden relative">
+
+    <!-- Animated Background Blobs -->
+    <div class="fixed inset-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob"></div>
+        <div class="absolute top-0 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Main Content Container -->
+    <div class="relative z-10 max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        
         <!-- Header -->
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-extrabold text-blue-600 mb-2">AI Travel Agent</h1>
-            <p class="text-lg text-gray-500">Powered by Gemini & Live Web Search</p>
+        <div class="text-center mb-12 animate-fade-in-up">
+            <div class="inline-flex items-center justify-center p-4 rounded-full bg-white/80 backdrop-blur-sm text-blue-600 mb-6 shadow-lg border border-white/50 hover:scale-110 transition-transform duration-300">
+                <i class="fas fa-plane-departure text-3xl animate-pulse-slow"></i>
+            </div>
+            <h1 class="text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600 mb-4 tracking-tight drop-shadow-sm">
+                AI Travel Agent
+            </h1>
+            <p class="text-lg md:text-xl text-slate-600 font-medium">Intelligent itineraries powered by Gemini & Live Web Search</p>
         </div>
 
-        <!-- Input Form -->
-        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <!-- Glassmorphism Input Form -->
+        <div class="bg-white/60 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/80 p-8 sm:p-10 mb-8 animate-fade-in-up" style="animation-delay: 0.1s;">
             <form id="tripForm" class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Where do you want to go?</label>
-                    <input type="text" id="destination" required placeholder="e.g., Kyoto, Japan" 
-                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
+                
+                <div class="group">
+                    <label class="block text-sm font-bold text-slate-700 mb-2 transition-colors group-focus-within:text-blue-600">Where to?</label>
+                    <div class="relative overflow-hidden rounded-xl">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-map-marker-alt text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                        </div>
+                        <input type="text" id="destination" required placeholder="e.g., Tokyo, Japan" 
+                               class="pl-12 block w-full bg-white/70 border border-slate-200 shadow-inner p-4 text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 rounded-xl placeholder-slate-400">
+                    </div>
                 </div>
                 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">How many days?</label>
-                    <input type="number" id="duration" required min="1" max="30" value="3" 
-                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
+                <div class="group">
+                    <label class="block text-sm font-bold text-slate-700 mb-2 transition-colors group-focus-within:text-blue-600">How many days?</label>
+                    <div class="relative overflow-hidden rounded-xl">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-calendar-alt text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                        </div>
+                        <input type="number" id="duration" required min="1" max="30" value="3" 
+                               class="pl-12 block w-full bg-white/70 border border-slate-200 shadow-inner p-4 text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 rounded-xl">
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Interests (comma separated)</label>
-                    <input type="text" id="interests" placeholder="e.g., hidden temples, street food, art" 
-                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
+                <div class="group">
+                    <label class="block text-sm font-bold text-slate-700 mb-2 transition-colors group-focus-within:text-blue-600">What are your interests?</label>
+                    <div class="relative overflow-hidden rounded-xl">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-compass text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                        </div>
+                        <input type="text" id="interests" placeholder="e.g., temples, street food, nightlife" 
+                               class="pl-12 block w-full bg-white/70 border border-slate-200 shadow-inner p-4 text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 rounded-xl placeholder-slate-400">
+                    </div>
                 </div>
 
+                <!-- Animated Gradient Button -->
                 <button type="submit" id="submitBtn" 
-                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                    Plan My Trip
+                        class="w-full flex justify-center items-center gap-3 py-4 px-6 mt-4 border border-transparent rounded-xl shadow-lg text-lg font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 animate-gradient-x hover:shadow-indigo-500/30 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all transform duration-300">
+                    <i class="fas fa-sparkles"></i> Generate Itinerary
                 </button>
             </form>
         </div>
 
-        <!-- Loading Spinner (Hidden by default) -->
-        <div id="loading" class="hidden text-center my-8">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p class="mt-2 text-gray-600">Agent is searching the web and crafting your itinerary...</p>
+        <!-- Modern Loading State -->
+        <div id="loading" class="hidden my-12 animate-fade-in-up">
+            <div class="bg-white/60 backdrop-blur-xl rounded-3xl shadow-lg border border-white/80 p-10 text-center">
+                <div class="relative w-20 h-20 mx-auto mb-6">
+                    <div class="absolute inset-0 border-4 border-blue-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <i class="fas fa-compass text-blue-600 text-2xl animate-pulse"></i>
+                    </div>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Agent is planning your trip...</h3>
+                <p class="text-slate-500">Searching live data and crafting the perfect route.</p>
+            </div>
         </div>
 
-        <!-- Result Section -->
-        <div id="resultCard" class="hidden bg-white rounded-xl shadow-lg p-8 prose prose-blue max-w-none">
-            <div id="itineraryContent"></div>
+        <!-- Glassmorphism Result Section -->
+        <div id="resultCard" class="hidden bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white p-8 sm:p-12 mb-12 opacity-0">
+            <div id="itineraryContent" class="prose prose-lg prose-blue prose-headings:font-bold prose-a:text-indigo-600 max-w-none"></div>
         </div>
     </div>
 
-    <!-- The JavaScript to connect the UI to your FastAPI backend -->
+    <!-- JavaScript -->
+    <!-- JavaScript -->
     <script>
         document.getElementById('tripForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Get UI elements
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             const resultCard = document.getElementById('resultCard');
             const itineraryContent = document.getElementById('itineraryContent');
 
-            // Get user input
             const destination = document.getElementById('destination').value;
             const duration = parseInt(document.getElementById('duration').value);
-            // Convert comma separated string to an array
             const interestsRaw = document.getElementById('interests').value;
             const interests = interestsRaw ? interestsRaw.split(',').map(i => i.trim()) : [];
 
-            // Update UI to show loading state
+            // UI updates for loading
             submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-50');
-            resultCard.classList.add('hidden');
+            submitBtn.classList.add('opacity-80', 'cursor-not-allowed', 'scale-95');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Planning...';
+            
+            resultCard.classList.add('hidden', 'opacity-0');
+            resultCard.classList.remove('animate-fade-in-up');
             loading.classList.remove('hidden');
+            itineraryContent.innerHTML = '';
 
             try {
-                // Call your FastAPI backend!
                 const response = await fetch('/api/v1/plan-trip', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        destination: destination,
-                        duration_days: duration,
-                        interests: interests
-                    })
+                    body: JSON.stringify({ destination, duration_days: duration, interests })
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Use Marked.js to render the Markdown text into beautiful HTML
-                    itineraryContent.innerHTML = marked.parse(data.itinerary);
-                    resultCard.classList.remove('hidden');
-                } else {
-                    itineraryContent.innerHTML = `<p class="text-red-500">Error: ${JSON.stringify(data.detail)}</p>`;
-                    resultCard.classList.remove('hidden');
+                if (!response.ok) {
+                    throw new Error('Server returned an error status');
                 }
-            } catch (error) {
-                itineraryContent.innerHTML = `<p class="text-red-500">Failed to connect to the server.</p>`;
-                resultCard.classList.remove('hidden');
-            } finally {
-                // Reset UI
+
                 loading.classList.add('hidden');
+                resultCard.classList.remove('hidden', 'opacity-0');
+                resultCard.classList.add('animate-fade-in-up');
+
+                // Read the incoming text stream chunk-by-chunk
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let accumulatedText = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    accumulatedText += decoder.decode(value, { stream: true });
+                    itineraryContent.innerHTML = marked.parse(accumulatedText);
+                }
+
+            } catch (error) {
+                loading.classList.add('hidden');
+                resultCard.classList.remove('hidden', 'opacity-0');
+                itineraryContent.innerHTML = `<div class="p-6 bg-red-50/80 backdrop-blur-sm text-red-700 rounded-2xl border border-red-200"><h3 class="text-red-800 font-bold mb-2"><i class="fas fa-wifi mr-2"></i>Connection Failed</h3><p>Could not connect to the server or stream interrupted.</p></div>`;
+            } finally {
                 submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-50');
+                submitBtn.classList.remove('opacity-80', 'cursor-not-allowed', 'scale-95');
+                submitBtn.innerHTML = '<i class="fas fa-sparkles"></i> Generate Itinerary';
             }
         });
     </script>
-</body>
-</html>

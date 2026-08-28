@@ -1,38 +1,37 @@
 import pytest
+from unittest.mock import patch, MagicMock
+from main import app # Assuming your FastAPI instance is in main.py
 from fastapi.testclient import TestClient
-from main import app
 
-# Initialize the test client to talk to the local FastAPI application
 client = TestClient(app)
 
-@pytest.mark.integration
-def test_live_trip_generation_contract():
+def test_trip_generation_endpoint_success():
     """
-    Integration test that hits the live Gemini and SerpAPI endpoints.
-    Validates the API contract and performs dynamic assertions on the non-deterministic AI output.
+    Unit test that mocks the Gemini API to avoid live network calls, rate limits, 
+    and long execution times.
     """
-    
-    # 1. Arrange: Setup a real payload for a weekend getaway
     payload = {
         "destination": "Mysore",
         "duration_days": 2,
         "interests": ["palaces", "silk markets", "local food"]
     }
 
-    # 2. Act: Send the POST request (This will take 5-10 seconds as it hits the live internet)
-    response = client.post("/api/v1/plan-trip", json=payload)
-    
-    # 3. Assert: Validate the API Contract
-    assert response.status_code == 200, f"Integration failure: Expected HTTP 200, got {response.status_code}"
-    
-    data = response.json()
-    assert "itinerary" in data, "Contract violation: Response JSON is missing the 'itinerary' key"
-    
-    # 4. Assert: Validate the AI output quality dynamically
-    itinerary = data["itinerary"]
-    
-    # We can't check for exact strings, but we can verify it generated a substantial response
-    assert len(itinerary) > 150, "Quality failure: The generated itinerary is suspiciously short."
-    
-    # Do a fuzzy check to ensure the LLM didn't hallucinate a completely different location
-    assert "mysore" in itinerary.lower(), "Quality failure: The AI failed to mention the requested destination."
+    # 1. Arrange: Intercept the exact method in the google.generativeai library
+    with patch("google.generativeai.GenerativeModel.generate_content") as mock_generate:
+        
+        # Create mock chunks to simulate the AI's streaming response
+        chunk1 = MagicMock()
+        chunk1.text = "## Day 1\n"
+        
+        chunk2 = MagicMock()
+        chunk2.text = "Visit the Mysore Palace."
+        
+        # When the router calls generate_content, return our fake list of chunks
+        mock_generate.return_value = [chunk1, chunk2]
+
+        # 2. Act: Send the POST request to the local FastAPI app
+        response = client.post("/api/v1/plan-trip", json=payload)
+
+    # 3. Assert: Validate the API Contract and successful generation
+    assert response.status_code == 200
+    assert "Mysore Palace" in response.text
