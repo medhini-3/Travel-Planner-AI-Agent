@@ -29,7 +29,7 @@ async def plan_trip(request: TripRequest):
             prompt = f"Plan a {request.duration_days} day trip to {request.destination} focusing on {', '.join(request.interests)}. Use markdown formatting with clear headings and bullet points."
             
             # Stream the response using the new SDK
-            response = chat.send_message(prompt, stream=True)
+            response = chat.send_message_stream(prompt)
             for chunk in response:
                 if chunk.text:
                     yield chunk.text
