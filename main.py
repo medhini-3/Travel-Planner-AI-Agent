@@ -1,27 +1,25 @@
+import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
 from routers.trip_router import router
+from fastapi.responses import StreamingResponse
 
 app = FastAPI(title="Travel Planner AI-Agent API")
 
-# Enable CORS so your frontend communicates seamlessly
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Get the absolute path of the directory containing main.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 
-# Register your API router with the correct /api/v1 prefix matching your frontend
-app.include_router(router, prefix="/api/v1")
+# Register your API router
+app.include_router(router)
 
-# Mount the static folder to serve CSS/JS if needed
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount the static folder using the absolute path
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Serve the frontend HTML page on the root URL
 @app.get("/")
 async def serve_frontend():
-    return FileResponse("static/index.html")
+    # Construct the absolute path to your index.html file
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    return FileResponse(index_path)
