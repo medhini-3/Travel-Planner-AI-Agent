@@ -4,39 +4,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Travel Agent</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Leaflet.js Libraries for Interactive Maps -->
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Poppins', 'sans-serif'] },
+                    animation: { 'gradient-x': 'gradient-x 15s ease infinite' },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                            '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Leaflet.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* Custom Scrollbar for a premium feel */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <h1 class="text-4xl font-extrabold text-center mb-8 text-blue-700 tracking-tight">AI Travel Planner</h1>
+<body class="min-h-screen font-sans bg-gradient-to-br from-blue-50 via-indigo-50 to-teal-50 animate-gradient-x text-gray-800">
+    
+    <!-- Decorative background blobs -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-[20%] right-[-10%] w-96 h-96 bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 py-10">
         
-        <!-- Input Form -->
-        <div class="bg-white p-6 rounded-2xl shadow-xl mb-8 max-w-4xl mx-auto border border-gray-100">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <input type="text" id="destination" placeholder="Where to? (e.g., Goa)" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 bg-gray-50">
-                <input type="number" id="days" placeholder="How many days?" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 bg-gray-50">
-                <input type="text" id="interests" placeholder="Interests? (e.g., beaches, history)" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 bg-gray-50">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-2 drop-shadow-sm">
+                <i class="fa-solid fa-plane-departure mr-2 text-blue-600"></i>Wanderlust AI
+            </h1>
+            <p class="text-gray-500 font-medium">Your intelligent, map-driven travel architect</p>
+        </div>
+        
+        <!-- Glassmorphism Input Form -->
+        <div class="bg-white/70 backdrop-blur-lg p-8 rounded-3xl shadow-xl mb-10 max-w-4xl mx-auto border border-white/50">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="relative">
+                    <i class="fa-solid fa-location-dot absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500"></i>
+                    <input type="text" id="destination" placeholder="Destination (e.g., Goa)" class="w-full pl-12 p-4 rounded-xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 bg-white/50 shadow-inner transition-all">
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-calendar-days absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500"></i>
+                    <input type="number" id="days" placeholder="Duration (Days)" class="w-full pl-12 p-4 rounded-xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 bg-white/50 shadow-inner transition-all">
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-heart absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500"></i>
+                    <input type="text" id="interests" placeholder="Interests (e.g., history)" class="w-full pl-12 p-4 rounded-xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 bg-white/50 shadow-inner transition-all">
+                </div>
             </div>
-            <button id="generate-btn" onclick="generateTrip()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md hover:shadow-lg">
-                Generate Interactive Route
+            <button id="generate-btn" onclick="generateTrip()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg py-4 rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all duration-300">
+                Generate Interactive Itinerary <i class="fa-solid fa-wand-magic-sparkles ml-2"></i>
             </button>
-            <p id="loading" class="text-center text-blue-500 font-semibold mt-4 hidden animate-pulse">Plotting coordinates and finding hotels... Please wait.</p>
+            
+            <!-- Beautiful Loading State -->
+            <div id="loading" class="hidden flex flex-col items-center justify-center mt-6">
+                <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3"></div>
+                <p class="text-blue-600 font-semibold animate-pulse">Mapping routes and finding stays...</p>
+            </div>
         </div>
 
-        <!-- New Split-Screen Dashboard -->
-        <div id="results-dashboard" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Split-Screen Dashboard -->
+        <div id="results-dashboard" class="hidden grid grid-cols-1 lg:grid-cols-5 gap-8">
             
-            <!-- Left Column: Scrollable Itinerary Cards -->
-            <div class="flex flex-col space-y-6 overflow-y-auto max-h-[75vh] pr-2 custom-scrollbar">
-                <div id="itinerary-cards" class="space-y-6"></div>
+            <!-- Left Column: Scrollable Itinerary Timeline (Takes up 2/5 of the grid) -->
+            <div class="lg:col-span-2 flex flex-col space-y-6 overflow-y-auto max-h-[75vh] pr-4 custom-scrollbar">
+                <div id="itinerary-cards" class="space-y-8"></div>
             </div>
             
-            <!-- Right Column: Sticky Interactive Map -->
-            <div class="relative w-full h-[500px] lg:h-[75vh] sticky top-4 rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
+            <!-- Right Column: Sticky Interactive Map (Takes up 3/5 of the grid) -->
+            <div class="lg:col-span-3 relative w-full h-[500px] lg:h-[75vh] sticky top-6 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/80 bg-white">
                 <div id="map" class="w-full h-full z-0"></div>
             </div>
             
@@ -50,14 +107,13 @@
 
         function initMap() {
             if (!map) {
-                map = L.map('map').setView([20.5937, 78.9629], 4);
+                map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 4);
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
                 
-                // FIX: Use the 100% free OpenStreetMap tiles instead of CARTO
                 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    attribution: '&copy; OpenStreetMap contributors',
                     maxZoom: 19
                 }).addTo(map);
-                
                 markersGroup = L.layerGroup().addTo(map);
             }
         }
@@ -70,26 +126,20 @@
             if (!dest || !days) return alert("Please enter a destination and duration.");
 
             document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('generate-btn').disabled = true;
+            document.getElementById('generate-btn').classList.add('hidden');
             document.getElementById('results-dashboard').classList.add('hidden');
             document.getElementById('itinerary-cards').innerHTML = '';
 
             try {
-                // Fetch JSON data instead of a text stream
                 const response = await fetch('/api/v1/plan-trip', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        destination: dest,
-                        duration_days: parseInt(days),
-                        interests: interests.map(i => i.trim())
-                    })
+                    body: JSON.stringify({ destination: dest, duration_days: parseInt(days), interests: interests.map(i => i.trim()) })
                 });
 
                 if (!response.ok) throw new Error("Failed to fetch itinerary.");
                 const data = await response.json();
                 
-                // Show dashboard and reset map layers
                 document.getElementById('results-dashboard').classList.remove('hidden');
                 initMap();
                 markersGroup.clearLayers();
@@ -98,37 +148,54 @@
                 const coordinates = [];
                 const cardsContainer = document.getElementById('itinerary-cards');
 
-                // Loop through the AI JSON and build the UI
                 data.itinerary.forEach(dayPlan => {
-                    let activitiesHtml = '';
+                    // Build Timeline for Activities
+                    let activitiesHtml = '<div class="relative border-l-2 border-indigo-100 ml-4 mt-6 space-y-6">';
                     
-                    // Add Activities and Map Pins
                     dayPlan.activities.forEach((act) => {
-                        activitiesHtml += `<li class="ml-5 mb-3 text-gray-700"><b>📍 ${act.name}:</b> ${act.description}</li>`;
-                        addMapPin(act.latitude, act.longitude, `<b>${act.name}</b><br>${act.description}`);
+                        activitiesHtml += `
+                            <div class="relative pl-6 hover:translate-x-1 transition-transform duration-200">
+                                <div class="absolute -left-[9px] top-1 w-4 h-4 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full border-2 border-white shadow"></div>
+                                <h4 class="font-bold text-gray-800 text-lg">${act.name}</h4>
+                                <p class="text-sm text-gray-500 mt-1">${act.description}</p>
+                            </div>
+                        `;
+                        addMapPin(act.latitude, act.longitude, act.name, act.description, 'fa-location-dot', 'text-blue-500');
                         coordinates.push([act.latitude, act.longitude]);
                     });
+                    activitiesHtml += '</div>';
 
-                    // Add Hotel and Map Pin
+                    // Build Hotel Card
                     const h = dayPlan.hotel;
-                    activitiesHtml += `<div class="mt-4 p-4 bg-blue-50 rounded-xl text-blue-900 border border-blue-100 shadow-sm">
-                                        <b>🏨 Stay: ${h.name}</b><br><span class="text-sm">${h.description}</span>
-                                       </div>`;
-                    addMapPin(h.latitude, h.longitude, `<b>🏨 ${h.name}</b><br>${h.description}`);
+                    let hotelHtml = `
+                        <div class="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl border border-indigo-100 flex items-start shadow-sm">
+                            <div class="bg-indigo-100 p-3 rounded-xl text-indigo-600 mr-4 shadow-inner">
+                                <i class="fa-solid fa-bed text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-indigo-900">${h.name}</h4>
+                                <p class="text-xs text-indigo-700 mt-1 font-medium"><i class="fa-solid fa-moon mr-1"></i> Suggested Stay</p>
+                            </div>
+                        </div>
+                    `;
+                    addMapPin(h.latitude, h.longitude, h.name, h.description, 'fa-bed', 'text-indigo-600');
                     coordinates.push([h.latitude, h.longitude]);
 
-                    // Inject the day card into the sidebar
+                    // Inject the complete day card
                     cardsContainer.innerHTML += `
-                        <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                            <h2 class="text-2xl font-bold text-gray-800 mb-2 border-b pb-2">Day ${dayPlan.day}: ${dayPlan.theme}</h2>
-                            <ul class="mt-4 list-disc marker:text-blue-500">${activitiesHtml}</ul>
+                        <div class="bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-lg border border-white/60">
+                            <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+                                <h2 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Day ${dayPlan.day}</h2>
+                                <span class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">${dayPlan.theme}</span>
+                            </div>
+                            ${hotelHtml}
+                            ${activitiesHtml}
                         </div>
                     `;
                 });
 
-                // Draw the connecting route and auto-zoom to fit the journey
                 if (coordinates.length > 0) {
-                    routeLine = L.polyline(coordinates, { color: '#2563eb', weight: 4, dashArray: '8, 8' }).addTo(map);
+                    routeLine = L.polyline(coordinates, { color: '#4f46e5', weight: 3, dashArray: '10, 10', opacity: 0.7 }).addTo(map);
                     map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
                 }
 
@@ -136,12 +203,19 @@
                 alert(error.message);
             } finally {
                 document.getElementById('loading').classList.add('hidden');
-                document.getElementById('generate-btn').disabled = false;
+                document.getElementById('generate-btn').classList.remove('hidden');
             }
         }
 
-        function addMapPin(lat, lng, popupText) {
-            const marker = L.marker([lat, lng]).bindPopup(popupText);
+        function addMapPin(lat, lng, name, desc, iconName, colorClass) {
+            // Using standard Leaflet markers with custom popups for stability
+            const popupContent = `
+                <div class="font-sans text-center">
+                    <i class="fa-solid ${iconName} ${colorClass} text-2xl mb-2 block"></i>
+                    <b class="text-gray-800 text-sm block mb-1">${name}</b>
+                </div>
+            `;
+            const marker = L.marker([lat, lng]).bindPopup(popupContent);
             markersGroup.addLayer(marker);
         }
     </script>
