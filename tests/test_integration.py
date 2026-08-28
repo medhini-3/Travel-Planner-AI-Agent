@@ -14,7 +14,7 @@ def test_trip_generation_endpoint_success():
     with patch("routers.trip_router.client") as mock_genai_client, \
          patch("routers.trip_router.requests.get") as mock_requests_get:
 
-        # 1. Mock the TWO SerpApi responses (First for hotels, Second for restaurants)
+        # 1. Mock SerpApi responses (Hotels, then Restaurants)
         mock_hotel_response = MagicMock()
         mock_hotel_response.json.return_value = {
             "local_results": [{"title": "Real Taj Exotica", "rating": 4.8, "gps_coordinates": {"latitude": 15.2, "longitude": 73.9}}]
@@ -27,7 +27,7 @@ def test_trip_generation_endpoint_success():
         
         mock_requests_get.side_effect = [mock_hotel_response, mock_restaurant_response]
 
-        # 2. Mock the Gemini structured JSON response including 'meals'
+        # 2. Mock Gemini response with timings and budget
         mock_parsed_response = MagicMock()
         mock_parsed_response.model_dump.return_value = {
             "destination": "Goa",
@@ -35,10 +35,38 @@ def test_trip_generation_endpoint_success():
                 {
                     "day": 1,
                     "theme": "Beach Day",
-                    "hotel": {"name": "Real Taj Exotica", "latitude": 15.2, "longitude": 73.9, "description": "Luxury stay"},
-                    "meals": [{"name": "Real Britto's", "latitude": 15.55, "longitude": 73.75, "description": "Seafood spot"}],
+                    "hotel": {
+                        "name": "Real Taj Exotica",
+                        "rating": "4.8 ★",
+                        "price_tier": "Luxury (₹15,000/night)",
+                        "check_in_note": "Check-in 02:00 PM",
+                        "latitude": 15.2,
+                        "longitude": 73.9,
+                        "description": "Luxury beachfront resort"
+                    },
                     "activities": [
-                        {"name": "Baga Beach", "latitude": 15.5, "longitude": 73.7, "description": "Sunny"}
+                        {
+                            "time_slot": "09:30 AM - 12:00 PM",
+                            "name": "Baga Beach",
+                            "estimated_duration": "2.5 hours",
+                            "estimated_cost": "Free entry",
+                            "insider_tip": "Visit early to avoid peak heat",
+                            "latitude": 15.5,
+                            "longitude": 73.7,
+                            "description": "Popular sandy beach with water sports"
+                        }
+                    ],
+                    "meals": [
+                        {
+                            "meal_type": "Lunch",
+                            "time_slot": "01:00 PM - 02:30 PM",
+                            "name": "Real Britto's",
+                            "must_try": "Butter Garlic Prawns",
+                            "estimated_cost": "₹1,200 for two",
+                            "latitude": 15.55,
+                            "longitude": 73.75,
+                            "description": "Iconic beach shack dining"
+                        }
                     ]
                 }
             ]
@@ -54,5 +82,5 @@ def test_trip_generation_endpoint_success():
     assert response.status_code == 200
     data = response.json()
     assert data["destination"] == "Goa"
-    assert data["itinerary"][0]["hotel"]["name"] == "Real Taj Exotica"
-    assert data["itinerary"][0]["meals"][0]["name"] == "Real Britto's"
+    assert data["itinerary"][0]["activities"][0]["time_slot"] == "09:30 AM - 12:00 PM"
+    assert data["itinerary"][0]["meals"][0]["must_try"] == "Butter Garlic Prawns"
